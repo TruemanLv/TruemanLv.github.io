@@ -1,0 +1,88 @@
+---
+layout:     post
+title:      "LeetCode刷题整理（2） --- 接雨水"
+subtitle:   ""
+date:       2021-02-23 10:01:00
+author:     "lvjb"
+header-img: "img/post-bg-unix-linux.jpg"
+catalog: true
+tags:
+    - LeetCode
+    - 编程
+    - JAVA
+---
+
+
+#### 题目
+ ![](/img/leetcode/trapping-rain-water.png)
+#### 分析
+ &emsp;&emsp;拿到这道题观察了下坐标图，最开始卡在如何求面积上，考虑过一层一层算，但是没有思路。
+ 后来分析如下图所示将其分为以下几块，各块每个节点的存水量是，两侧高点的最小值减去当前节点，大致思路用栈来实现。但是实现不了分块写不出来。
+ ![](/img/leetcode/analysis.png)
+ &emsp;&emsp;后来发现如果按节点来看，每个节点能不能存水，取决于该节点两侧有没有高于本节点的柱子，与柱子和该节点距离无关，而该节点的存水量等于两侧最高柱子较矮的值减去当前节点高度，然后把所有节点的存水量相加即可得到总接水量。
+ 这个思路很清晰好写。
+#### 题解
+&emsp;&emsp;因为第一个节点和最后一个节点只能作为墙，不可能存水，故循环时从第二个节点开始倒数第二个节点结束，整理清晰后，代码如下：
+
+``` 
+class Solution {
+        public int trap(int[] height) {
+            int result = 0;
+       
+            for(int i=1; i<height.length-1; i++){
+                int max_left = 0;
+                for(int j=i-1; j>=0; j--){
+                    if(height[j] > max_left){
+                        max_left = height[j];
+                    }
+                }
+                int max_right = 0;
+                for(int j=i+1; j < height.length; j++){
+                    if(height[j] > max_right){
+                        max_right = height[j];
+                    }
+                }
+                
+                int min = Math.min(max_left , max_right);
+                if(min > height[i]){
+                    result = result + (min - height[i]);
+                }
+            }
+            return result;
+        }
+    }
+```  
+
+#### 要点
+ &emsp;&emsp;这个逻辑非常清晰易理解。解题要点在于每个柱子的存水量都与两侧高于本柱的柱子的最小值有关，这样是不是很容易联想到线性规划的思想。网上的确有些用 dp 解决的题解，思路是构建两个数组分别存储当前节点左右两侧最高点，其中当前节点的左侧最高点只与当前左侧最高点与左侧节点的高度有关，右侧同理可得。
+后面碰到类似的统一整理线性规划思想。  
+ &emsp;&emsp;这个题目被 leetcode 放在了栈的 tag 下，确实可以用栈的方式来解决，需要了解下知识点 ---- 单调栈。
+ 
+#### 拓展
+&emsp;&emsp;这两天研究了下单调栈，在算法题中主要用于获取某个节点左右最大最小值的问题，比如求最大矩形面积(leetcode84、leetcode85)等。。例如本题可分割为获取某节点两侧最大值的问题，以此套用单调栈解决。根据这道题题意可知，需要出栈等处理的触发机制是当前节点高度大于栈顶节点高度。可写代码如下：
+```
+class Solution {
+      public int trap(int[] height) {
+            int result = 0;
+            Stack<Integer> stack = new Stack<Integer>();
+            for(int i=0;i<height.length;i++){
+                //找到右侧最大值之后，就要一直向左遍历，计算每个节点的存水量
+                while(stack.isEmpty()&& height[i]>height[stack.peek()]){
+                //获取前一个节点的高度后，将该节点pop()，目的是向左获取正在计算的节点左侧最大值
+                int h = height[stack.peek()];
+                stack.pop();
+                //若只有墙，无法储水
+                if(stack.isEmpty()){
+                    break;
+                }
+                //节点存水量跟左右节点的最低点相关
+                int min = Math.min(height[i],height[stack.peek()]);
+                //此处的 (min-h)只有左墙高于当前墙才能储水,(i-stack.peek()-1)此时栈顶是左墙，所以还需要-1
+                result += (min-h)*(i-stack.peek()-1);
+            }
+                stack.push(i);
+            }
+            return result;
+      }           
+}
+```
